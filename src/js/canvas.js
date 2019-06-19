@@ -200,7 +200,7 @@ function animate() {
     const radius = 12
     const x = Math.max(radius, Math.random() * canvas.width - radius);
     stars.push(new Star(x, -100, radius, "white"));
-    randomSpawnRate = utails.randomIntFromRange(75, 200);
+    randomSpawnRate = utils.randomIntFromRange(75, 200);
   }
 }
 

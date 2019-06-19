@@ -102,71 +102,207 @@ var _utils2 = _interopRequireDefault(_utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var canvas = document.querySelector('canvas');
-var c = canvas.getContext('2d');
+var canvas = document.querySelector("canvas");
+var c = canvas.getContext("2d");
 
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
 var mouse = {
-    x: innerWidth / 2,
-    y: innerHeight / 2
+  x: innerWidth / 2,
+  y: innerHeight / 2
 };
 
-var colors = ['#2185C5', '#7ECEFD', '#FFF6E5', '#FF7F66'];
+var colors = ["#2185C5", "#7ECEFD", "#FFF6E5", "#FF7F66"];
 
 // Event Listeners
-addEventListener('mousemove', function (event) {
-    mouse.x = event.clientX;
-    mouse.y = event.clientY;
+addEventListener("mousemove", function (event) {
+  mouse.x = event.clientX;
+  mouse.y = event.clientY;
 });
 
-addEventListener('resize', function () {
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
+addEventListener("resize", function () {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
 
-    init();
+  init();
 });
 
 // Objects
-function Object(x, y, radius, color) {
-    this.x = x;
-    this.y = y;
-    this.radius = radius;
-    this.color = color;
+function Star(x, y, radius, color) {
+  this.x = x;
+  this.y = y;
+  this.radius = radius;
+  this.color = color;
+  this.velocity = {
+    x: _utils2.default.randomIntFromRange(-5, 5),
+    y: 5
+  };
+  this.friction = 0.5;
+  this.gravity = 1;
 }
 
-Object.prototype.draw = function () {
+Star.prototype.draw = function () {
+  c.save();
+  c.beginPath();
+  c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+  c.fillStyle = this.color;
+  c.shadowColor = "#E3EAEF";
+  c.shadowBlur = 20;
+  c.fill();
+  c.closePath();
+  c.restore();
+};
+
+Star.prototype.update = function () {
+  this.draw();
+
+  // When star hits bottom of canvas
+  if (this.y + this.radius + this.velocity.y > canvas.height - groundHeight) {
+    this.velocity.y = -this.velocity.y * this.friction;
+    this.shatter();
+  } else {
+    this.velocity.y += this.gravity;
+  }
+
+  // When star hits side of canvas
+  if (this.x + this.radius + this.velocity.x > canvas.height || this.x - this.radius <= 0) {
+    this.velocity.x = -this.velocity.x * this.friction;
+    this.shatter();
+  } else {
+    this.velocity.y += this.gravity;
+  }
+
+  this.x += this.velocity.x;
+  this.y += this.velocity.y;
+};
+
+Star.prototype.shatter = function () {
+  this.radius -= 3;
+  for (var i = 0; i < 10; i++) {
+    miniStars.push(new MiniStar(this.x, this.y, 2));
+  }
+};
+
+function MiniStar(x, y, radius, color) {
+  Star.call(this, x, y, radius, color);
+  this.velocity = {
+    x: _utils2.default.randomIntFromRange(-5, 5),
+    y: _utils2.default.randomIntFromRange(-15, 15)
+  };
+  this.friction = 0.5;
+  this.gravity = 0.1;
+  this.lifetime = 100;
+  this.opacity = 1;
+}
+
+MiniStar.prototype.draw = function () {
+  c.save();
+  c.beginPath();
+  c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+  c.fillStyle = "rgba(227, 234, 239, " + this.opacity + ")";
+  c.shadowColor = "#E3EAEF";
+  c.shadowBlur = 20;
+  c.fill();
+  c.closePath();
+  c.restore();
+};
+
+MiniStar.prototype.update = function () {
+  this.draw();
+
+  if (this.y + this.radius + this.velocity.y > canvas.height - groundHeight) {
+    this.velocity.y = -this.velocity.y * this.friction;
+  } else {
+    this.velocity.y += this.gravity;
+  }
+
+  this.x += this.velocity.x;
+  this.y += this.velocity.y;
+  this.lifetime -= 1;
+  this.opacity = this.lifetime / 100;
+};
+
+function createMountainRange(mountains, height, color) {
+  for (var i = 0; i < mountains; i++) {
+    var mountainWidth = canvas.width / mountains;
     c.beginPath();
-    c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-    c.fillStyle = this.color;
+    c.moveTo(i * mountainWidth, canvas.height);
+    c.lineTo(i * mountainWidth + mountainWidth + 325, canvas.height);
+    c.lineTo(i * mountainWidth + mountainWidth / 2, canvas.height - height);
+    c.lineTo(i * mountainWidth - 325, canvas.height);
+    c.fillStyle = color;
     c.fill();
     c.closePath();
-};
-
-Object.prototype.update = function () {
-    this.draw();
-};
+  }
+}
 
 // Implementation
-var objects = void 0;
-function init() {
-    objects = [];
+var backgroundGradient = c.createLinearGradient(0, 0, 0, canvas.height);
+backgroundGradient.addColorStop(0, "#171e26");
+backgroundGradient.addColorStop(1, "#3f586b");
 
-    for (var i = 0; i < 400; i++) {
-        // objects.push()
-    }
+var stars = void 0;
+var miniStars = void 0;
+var backgroundStars = void 0;
+var ticker = 0;
+var randomSpawnRate = 75;
+var groundHeight = 100;
+
+function init() {
+  stars = [];
+  miniStars = [];
+  backgroundStars = [];
+
+  for (var i = 0; i < 150; i++) {
+    var x = Math.random() * canvas.width;
+    var y = Math.random() * canvas.height;
+    var radius = Math.random() * 3;
+
+    backgroundStars.push(new Star(x, y, radius, "white"));
+  }
 }
 
 // Animation Loop
 function animate() {
-    requestAnimationFrame(animate);
-    c.clearRect(0, 0, canvas.width, canvas.height);
+  requestAnimationFrame(animate);
+  c.fillStyle = backgroundGradient;
+  c.fillRect(0, 0, canvas.width, canvas.height);
 
-    c.fillText('HTML CANVAS BOILERPLATE', mouse.x, mouse.y);
-    // objects.forEach(object => {
-    //  object.update()
-    // })
+  c.fillText("HTML CANVAS BOILERPLATE", mouse.x, mouse.y);
+
+  backgroundStars.forEach(function (backgroundStar) {
+    backgroundStar.draw();
+  });
+
+  createMountainRange(1, canvas.height - 100, "white");
+  createMountainRange(2, canvas.height - 200, "grey");
+  createMountainRange(3, canvas.height - 500, "black");
+  c.fillStyle = '#182028';
+  c.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
+
+  stars.forEach(function (star, i) {
+    star.update();
+    if (star.radius == 0) {
+      stars.splice(i, 1);
+    }
+  });
+
+  miniStars.forEach(function (miniStar, i) {
+    miniStar.update();
+    if (miniStar.lifetime == 0) {
+      miniStars.splice(i, 1);
+    }
+  });
+
+  ticker++;
+
+  if (ticker % 75 == 0) {
+    var radius = 12;
+    var x = Math.max(radius, Math.random() * canvas.width - radius);
+    stars.push(new Star(x, -100, radius, "white"));
+    randomSpawnRate = _utils2.default.randomIntFromRange(75, 200);
+  }
 }
 
 init();
